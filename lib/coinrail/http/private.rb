@@ -7,6 +7,10 @@ module CoinRail
           @key = key
         end
 
+        def current_timestamp
+          (Time.now.to_i * 1000)
+        end
+
         def balance
           puts @key
           body = {timestamp: (Time.now.to_i * 1000).to_s,
@@ -30,110 +34,67 @@ module CoinRail
         #   @connection.get('/v1/me/getdeposits').body
         # end
 
-        # def withdraw(currency_code: 'KRW', bank_account_id: nil, amount: nil, code: nil)
-        #   body = {
-        #       currency_code: currency_code,
-        #       bank_account_id: bank_account_id,
-        #       amount: amount,
-        #       code: code
-        #   }.delete_if { |_, v| v.nil? }
-        #   @connection.post('/v1/me/withdraw', body).body
-        # end
+        def wallet_info(currency)
+          body = {currency: currency}.delete_if { |_, v| v.nil? }
+          @connection.post('/wallet', body).body
+        end
+
+        def withdraw_coin(currency, address, amount)
+          body = {
+              currency: currency_code,
+              address: address,
+              amount: amount,
+          }.delete_if { |_, v| v.nil? }
+          @connection.post('/withdraw', body).body
+        end
 
         # def withdrawals
         #   @connection.get('/v1/me/getwithdrawals').body
         # end
 
-        # def send_child_order(product_code: 'BTC_JPY', child_order_type: nil, side: nil, price: nil, size: nil, minute_to_expire: nil, time_in_force: 'GTC')
-        #   body = {
-        #       product_code: product_code,
-        #       child_order_type: child_order_type,
-        #       side: side,
-        #       price: price,
-        #       size: size,
-        #       minute_to_expire: minute_to_expire,
-        #       time_in_force: time_in_force
-        #   }.delete_if { |_, v| v.nil? }
-        #   @connection.post('/v1/me/sendchildorder', body).body
-        # end
-
-        # def cancel_child_order(product_code: 'BTC_JPY', child_order_id: nil, child_order_acceptance_id: nil)
-        #   body = {
-        #       product_code: product_code,
-        #       child_order_id: child_order_id,
-        #       child_order_acceptance_id: child_order_acceptance_id
-        #   }.delete_if { |_, v| v.nil? }
-        #   @connection.post('/v1/me/cancelchildorder', body).body
-        # end
-
-        # def send_parent_order(order_method: nil, minute_to_expire: nil, time_in_force: 'GTC', parameters: {})
-        #   body = {
-        #       order_method: order_method,
-        #       minute_to_expire: minute_to_expire,
-        #       time_in_force: time_in_force,
-        #       parameters: parameters
-        #   }.delete_if { |_, v| v.nil? }
-        #   @connection.post('/v1/me/sendparentorder', body).body
-        # end
-
-        # def cancel_parent_order(product_code: 'BTC_JPY', parent_order_id: nil, parent_order_acceptance_id: nil)
-        #   body = {
-        #       product_code: product_code,
-        #       parent_order_id: parent_order_id,
-        #       parent_order_acceptance_id: parent_order_acceptance_id
-        #   }.delete_if { |_, v| v.nil? }
-        #   @connection.post('/v1/me/cancelparentorder', body).body
-        # end
-
-        # def cancel_all_child_orders(product_code: 'BTC_JPY')
-        #   @connection.post('/v1/me/cancelallchildorders', { product_code: product_code }).body
-        # end
-
-        # def child_orders(product_code: 'BTC_JPY', count: nil, before: nil, after: nil, child_order_state: nil, parent_order_id: nil)
-        #   query = {
-        #       product_code: product_code,
-        #       count: count,
-        #       before: before,
-        #       after: after,
-        #       child_order_state: child_order_state,
-        #       parent_order_id: parent_order_id
-        #   }.delete_if { |_, v| v.nil? }
-        #   @connection.get('/v1/me/getchildorders', query).body
-        # end
-
-        # def parent_orders(product_code: 'BTC_JPY', count: nil, before: nil, after: nil, parent_order_state: nil)
-        #   query = {
-        #       product_code: product_code,
-        #       count: count,
-        #       before: before,
-        #       after: after,
-        #       parent_order_state: parent_order_state
-        #   }.delete_if { |_, v| v.nil? }
-        #   @connection.get('/v1/me/getparentorders', query).body
-        # end
-
-        # def parent_order(parent_order_id: nil, parent_order_acceptance_id: nil)
-        #   query = {
-        #       parent_order_id: parent_order_id,
-        #       parent_order_acceptance_id: parent_order_acceptance_id
-        #   }.delete_if { |_, v| v.nil? }
-        #   @connection.get('/v1/me/getparentorder', query).body
-        # end
-
-        def trade_completed(currency: 'btc-krw', count: nil, offset: nil, timestamp: nil)
-          query = {
-              currency: currency,
-              count: count,
-              offset: offset,
-              timestamp: timestamp
-          }.delete_if { |_, v| v.nil? }
-          @connection.get('/trade/completed', query).body
+        def limit_buy(currency, price, qty)
+          throw "limit_buy: all parameter should not be nil" if currency.nil? or price.nil? or qty.nil?
+          body = {access_key: @key,
+                  currency: currency,
+                  price: price,
+                  qty: qty,
+                  timestamp: current_timestamp}
+          @connection.post('/order/limit/buy', body).body
         end
+
+        def limit_sell(currency, price, qty)
+          throw "limit_sell: all parameter should not be nil" if currency.nil? or price.nil? or qty.nil?
+          body = {access_key: @key,
+                  currency: currency,
+                  price: price,
+                  qty: qty,
+                  timestamp: current_timestamp}
+          @connection.post('/order/limit/sell', body).body
+        end
+
+        def trade_completed(currency: nil, count: nil, offset: nil)
+          query = {
+            access_key: @key,
+            currency: currency,
+            count: count,
+            offset: offset,
+            timestamp: current_timestamp
+          }.delete_if { |_, v| v.nil? }
+          @connection.post('/trade/completed', query).body
+        end
+
 
         alias_method :executions, :trade_completed
 
-        def trade_pending(currency: 'btc-krw')
-          @connection.get('/trade/pending', { currency: currency }).body
+        def trade_pending(currency: nil, count: nil, offset: nil)
+          query = {
+            access_key: @key,
+            currency: currency,
+            count: count,
+            offset: offset,
+            timestamp: current_timestamp
+          }.delete_if { |_, v| v.nil? }
+          @connection.post('/trade/pending', query).body
         end
       end
     end
