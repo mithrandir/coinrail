@@ -35,15 +35,18 @@ module CoinRail
         # end
 
         def wallet_info(currency)
-          body = {currency: currency}.delete_if { |_, v| v.nil? }
+          body = {access_key: @key,
+                  currency: currency,
+                  timestamp: current_timestamp}.delete_if { |_, v| v.nil? }
           @connection.post('/wallet', body).body
         end
 
         def withdraw_coin(currency, address, amount)
-          body = {
-              currency: currency_code,
-              address: address,
-              amount: amount,
+          body = {access_key: @key,
+                  currency: currency_code,
+                  address: address,
+                  amount: amount,
+                  timestamp: current_timestamp
           }.delete_if { |_, v| v.nil? }
           @connection.post('/withdraw', body).body
         end
